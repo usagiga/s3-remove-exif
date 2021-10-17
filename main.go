@@ -42,7 +42,7 @@ func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
 	}
 
 
-	err = Upload(sess, bucket, objKey, nil)
+	err = Upload(sess, bucket, objKey, file)
 	if err != nil {
 		return fmt.Errorf("failed upload: %w", err)
 	}
