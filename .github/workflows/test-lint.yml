@@ -1,0 +1,45 @@
+name: "Lint, Build & Test (Go)"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.go"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**.go"
+
+jobs:
+  lint-build-test:
+    name: "Run lint, build, test"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-go@v2"
+        with:
+          go-version: "1.17.1"
+      - name: "vet"
+        run: "make lint"
+      - name: "build"
+        run: "make build"
+      - name: "test"
+        run: "make test"
+      - name: "notify if error"
+        uses: actions/github-script@v4
+        with:
+          script: |-
+            const isPR = context.eventName == 'pull_request';
+            const jobUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            if (!isPR) {
+              return;
+            }
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Failed linte/build/test.\n${jobUrl}`
+            });
+        if: failure()

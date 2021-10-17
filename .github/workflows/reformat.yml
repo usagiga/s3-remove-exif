@@ -1,0 +1,53 @@
+name: "Reformat codes (Go)"
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**.go"
+
+jobs:
+  reformat:
+    name: "Reformat codes"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-go@v2"
+        with:
+          go-version: "1.17.1"
+      - name: "reformat"
+        run: "make fmt"
+      - name: "commit if formatted"
+        run: |-
+          CHANGES="$(git status -s)"
+          if [[ -z "${CHANGES:+x}" ]]; then
+            exit 0
+          fi
+
+          # https://api.github.com/users/github-actions%5Bbot%5D
+          git config --local user.name "${GITHUB_ACTOR} via github-actions"
+          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add .
+          git commit -m 'chore: reformat codes [skip ci]'
+          git push origin HEAD
+
+      - name: "notify if error"
+        uses: actions/github-script@v4
+        with:
+          script: |-
+            const isPR = context.eventName == 'pull_request';
+            const jobUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            if (!isPR) {
+              return;
+            }
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Failed reformat.\n${jobUrl}`
+            });
+        if: failure()

@@ -1,0 +1,25 @@
+name: "Generate project archive for AWS Lambda"
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  gen-artifact:
+    name: "Generate project archive"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "actions/checkout@v2"
+      - name: "vendor"
+        run: |-
+          mkdir vendor
+          go mod download
+      - name: "zip"
+        run: zip -r s3-remove-exif-lambda.zip .
+      - name: Release
+        uses: "softprops/action-gh-release@v1"
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            s3-remove-exif-lambda.zip
