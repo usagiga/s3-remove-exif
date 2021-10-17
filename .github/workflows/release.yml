@@ -13,8 +13,7 @@ jobs:
       - uses: "actions/checkout@v2"
       - name: "vendor"
         run: |-
-          mkdir vendor
-          go mod download
+          go mod vendor
       - name: "zip"
         run: zip -r s3-remove-exif-lambda.zip .
       - name: Release
