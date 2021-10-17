@@ -20,9 +20,9 @@ func main() {
 	lambda.Start(OnObjectCreated)
 }
 
-func OnObjectCreated(ctx context.Context, ev events.S3EventRecord) (err error) {
-	bucket := ev.S3.Bucket.Name
-	objKey := ev.S3.Object.Key
+func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
+	bucket := ev.Records[0].S3.Bucket.Name
+	objKey := ev.Records[0].S3.Object.Key
 	sess := session.Must(session.NewSession()) // credential through IAM Role
 
 	file, err := Download(sess, bucket, objKey)

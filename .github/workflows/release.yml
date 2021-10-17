@@ -14,6 +14,9 @@ jobs:
       - name: "vendor"
         run: |-
           go mod vendor
+      - name: "build"
+        run: |-
+          GOOS=linux GOARCH=amd64 go build -o OnObjectCreated .
       - name: "zip"
         run: zip -r s3-remove-exif-lambda.zip .
       - name: Release
