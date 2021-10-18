@@ -25,7 +25,7 @@ func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
 	objKey := ev.Records[0].S3.Object.Key
 	sess := session.Must(session.NewSession()) // credential through IAM Role
 
-	file, err := Download(sess, bucket, objKey)
+	file, acl, err := Download(sess, bucket, objKey)
 	if err != nil {
 		return fmt.Errorf("failed download: %w", err)
 	}
@@ -42,7 +42,7 @@ func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
 	}
 
 
-	err = Upload(sess, bucket, objKey, file)
+	err = Upload(sess, bucket, objKey, acl, file)
 	if err != nil {
 		return fmt.Errorf("failed upload: %w", err)
 	}
@@ -51,7 +51,8 @@ func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
 	return nil
 }
 
-func Download(cp client.ConfigProvider, bucket, objKey string) (fileBytes []byte, err error) {
+func Download(cp client.ConfigProvider, bucket, objKey string) (fileBytes []byte, acl string, err error) {
+	// Get file
 	buf := aws.NewWriteAtBuffer(nil)
 	downloader := s3manager.NewDownloader(cp)
 	_, err = downloader.Download(buf, &s3.GetObjectInput{
@@ -59,19 +60,31 @@ func Download(cp client.ConfigProvider, bucket, objKey string) (fileBytes []byte
 		Key:    &objKey,
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return buf.Bytes(), nil
+	// Get ACL
+	s3svc := s3.New(cp)
+	getAclOut, err := s3svc.GetObjectAcl(&s3.GetObjectAclInput{
+		Bucket:              &bucket,
+		Key:                 &objKey,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	acl = getAclOut.String()
+
+	return buf.Bytes(), acl, nil
 }
 
-func Upload(cp client.ConfigProvider, bucket, objKey string, fileBytes []byte) (err error) {
+func Upload(cp client.ConfigProvider, bucket, objKey, acl string, fileBytes []byte) (err error) {
 	buf := bytes.NewBuffer(fileBytes)
 	uploader := s3manager.NewUploader(cp)
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Body:   buf,
 		Bucket: &bucket,
 		Key:    &objKey,
+		ACL:    &acl,
 	})
 	if err != nil {
 		return err
