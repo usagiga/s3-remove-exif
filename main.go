@@ -35,7 +35,8 @@ func OnObjectCreated(ctx context.Context, ev events.S3Event) (err error) {
 		// Not to run redundantly, guard it
 		if errors.Is(err, exif.ErrNoExif) ||
 			errors.Is(err, exif.ErrNotCompatible) {
-			return
+			log.Printf("%s has no exif. skip it", objKey)
+			return nil
 		}
 
 		return fmt.Errorf("failed remove exif: %w", err)
